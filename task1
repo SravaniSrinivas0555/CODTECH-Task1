@@ -1,0 +1,89 @@
+CREATE TABLE Books (
+    BookID INT PRIMARY KEY AUTO_INCREMENT,
+    Title VARCHAR(100) NOT NULL,
+    Author VARCHAR(100) NOT NULL,
+    Publisher VARCHAR(100),
+    YearPublished INT,
+    Genre VARCHAR(50),
+    CopiesAvailable INT NOT NULL DEFAULT 1
+);
+
+CREATE TABLE Members (
+    MemberID INT PRIMARY KEY AUTO_INCREMENT,
+    FirstName VARCHAR(50) NOT NULL,
+    LastName VARCHAR(50) NOT NULL,
+    Email VARCHAR(100) UNIQUE,
+    Phone VARCHAR(15),
+    MembershipDate DATE DEFAULT CURRENT_DATE
+);
+
+CREATE TABLE Transactions (
+    TransactionID INT PRIMARY KEY AUTO_INCREMENT,
+    MemberID INT,
+    BookID INT,
+    IssueDate DATE NOT NULL,
+    ReturnDate DATE,
+    Status VARCHAR(10) CHECK (Status IN ('Issued', 'Returned')),
+    FOREIGN KEY (MemberID) REFERENCES Members(MemberID),
+    FOREIGN KEY (BookID) REFERENCES Books(BookID)
+);
+
+-- Insert books
+INSERT INTO Books (Title, Author, Publisher, YearPublished, Genre, CopiesAvailable)
+VALUES 
+('The Great Gatsby', 'F. Scott Fitzgerald', 'Scribner', 1925, 'Fiction', 5),
+('To Kill a Mockingbird', 'Harper Lee', 'J.B. Lippincott & Co.', 1960, 'Fiction', 3);
+
+-- Insert members
+INSERT INTO Members (FirstName, LastName, Email, Phone)
+VALUES 
+('John', 'Doe', 'john.doe@example.com', '1234567890'),
+('Jane', 'Smith', 'jane.smith@example.com', '0987654321');
+
+-- Insert transactions (Issue a book)
+INSERT INTO Transactions (MemberID, BookID, IssueDate, Status)
+VALUES 
+(1, 1, '2024-10-22', 'Issued'),
+(2, 2, '2024-10-20', 'Issued');
+
+
+-- Update book availability when a copy is issued
+UPDATE Books
+SET CopiesAvailable = CopiesAvailable - 1
+WHERE BookID = 1;
+
+-- Mark a book as returned and update the status
+UPDATE Transactions
+SET ReturnDate = '2024-10-25', Status = 'Returned'
+WHERE TransactionID = 1;
+
+-- Update book availability when a copy is returned
+UPDATE Books
+SET CopiesAvailable = CopiesAvailable + 1
+WHERE BookID = 1;
+
+-- Delete a book from the library
+DELETE FROM Books
+WHERE BookID = 2;
+
+-- Remove a member from the system
+DELETE FROM Members
+WHERE MemberID = 1;
+
+-- Get all books with available copies
+SELECT * FROM Books
+WHERE CopiesAvailable > 0;
+
+-- Get all members who borrowed books
+SELECT M.FirstName, M.LastName, B.Title, T.IssueDate
+FROM Members M
+JOIN Transactions T ON M.MemberID = T.MemberID
+JOIN Books B ON T.BookID = B.BookID
+WHERE T.Status = 'Issued';
+
+-- List overdue books (assuming a 14-day borrowing period)
+SELECT M.FirstName, M.LastName, B.Title, T.IssueDate
+FROM Members M
+JOIN Transactions T ON M.MemberID = T.MemberID
+JOIN Books B ON T.BookID = B.BookID
+WHERE T.Status = 'Issued' AND DATEDIFF(CURDATE(), T.IssueDate) > 14;
