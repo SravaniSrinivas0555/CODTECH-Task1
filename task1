@@ -1,89 +1,72 @@
+-- Database Schema for Library Management System
+
+-- 1. Books Table
 CREATE TABLE Books (
-    BookID INT PRIMARY KEY AUTO_INCREMENT,
-    Title VARCHAR(100) NOT NULL,
-    Author VARCHAR(100) NOT NULL,
-    Publisher VARCHAR(100),
-    YearPublished INT,
-    Genre VARCHAR(50),
-    CopiesAvailable INT NOT NULL DEFAULT 1
+    book_id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    author VARCHAR(255),
+    genre VARCHAR(100),
+    published_year INT,
+    available_copies INT DEFAULT 1
 );
 
+-- 2. Members Table
 CREATE TABLE Members (
-    MemberID INT PRIMARY KEY AUTO_INCREMENT,
-    FirstName VARCHAR(50) NOT NULL,
-    LastName VARCHAR(50) NOT NULL,
-    Email VARCHAR(100) UNIQUE,
-    Phone VARCHAR(15),
-    MembershipDate DATE DEFAULT CURRENT_DATE
+    member_id INT PRIMARY KEY AUTO_INCREMENT,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    join_date DATE DEFAULT CURRENT_DATE
 );
 
+-- 3. Transactions Table
 CREATE TABLE Transactions (
-    TransactionID INT PRIMARY KEY AUTO_INCREMENT,
-    MemberID INT,
-    BookID INT,
-    IssueDate DATE NOT NULL,
-    ReturnDate DATE,
-    Status VARCHAR(10) CHECK (Status IN ('Issued', 'Returned')),
-    FOREIGN KEY (MemberID) REFERENCES Members(MemberID),
-    FOREIGN KEY (BookID) REFERENCES Books(BookID)
+    transaction_id INT PRIMARY KEY AUTO_INCREMENT,
+    book_id INT,
+    member_id INT,
+    borrow_date DATE NOT NULL,
+    return_date DATE,
+    status ENUM('borrowed', 'returned') DEFAULT 'borrowed',
+    FOREIGN KEY (book_id) REFERENCES Books(book_id) ON DELETE CASCADE,
+    FOREIGN KEY (member_id) REFERENCES Members(member_id) ON DELETE CASCADE
 );
 
--- Insert books
-INSERT INTO Books (Title, Author, Publisher, YearPublished, Genre, CopiesAvailable)
-VALUES 
-('The Great Gatsby', 'F. Scott Fitzgerald', 'Scribner', 1925, 'Fiction', 5),
-('To Kill a Mockingbird', 'Harper Lee', 'J.B. Lippincott & Co.', 1960, 'Fiction', 3);
+-- Sample SQL Queries
 
--- Insert members
-INSERT INTO Members (FirstName, LastName, Email, Phone)
-VALUES 
-('John', 'Doe', 'john.doe@example.com', '1234567890'),
-('Jane', 'Smith', 'jane.smith@example.com', '0987654321');
+-- Insert new book
+INSERT INTO Books (title, author, genre, published_year, available_copies)
+VALUES ('To Kill a Mockingbird', 'Harper Lee', 'Fiction', 1960, 5);
 
--- Insert transactions (Issue a book)
-INSERT INTO Transactions (MemberID, BookID, IssueDate, Status)
-VALUES 
-(1, 1, '2024-10-22', 'Issued'),
-(2, 2, '2024-10-20', 'Issued');
+-- Insert new member
+INSERT INTO Members (first_name, last_name, email)
+VALUES ('Alice', 'Smith', 'alice.smith@example.com');
 
+-- Borrow a book (transaction)
+INSERT INTO Transactions (book_id, member_id, borrow_date)
+VALUES (1, 1, '2024-11-15');
 
--- Update book availability when a copy is issued
-UPDATE Books
-SET CopiesAvailable = CopiesAvailable - 1
-WHERE BookID = 1;
-
--- Mark a book as returned and update the status
+-- Return a book (update transaction)
 UPDATE Transactions
-SET ReturnDate = '2024-10-25', Status = 'Returned'
-WHERE TransactionID = 1;
+SET return_date = '2024-11-25', status = 'returned'
+WHERE transaction_id = 1;
 
--- Update book availability when a copy is returned
-UPDATE Books
-SET CopiesAvailable = CopiesAvailable + 1
-WHERE BookID = 1;
+-- Retrieve all books in the library
+SELECT * FROM Books;
 
--- Delete a book from the library
-DELETE FROM Books
-WHERE BookID = 2;
+-- Retrieve all members
+SELECT * FROM Members;
 
--- Remove a member from the system
+-- Retrieve all transactions (borrow/return history)
+SELECT t.transaction_id, b.title AS book_title, m.first_name, m.last_name, 
+       t.borrow_date, t.return_date, t.status
+FROM Transactions t
+JOIN Books b ON t.book_id = b.book_id
+JOIN Members m ON t.member_id = m.member_id;
+
+-- Delete a member
 DELETE FROM Members
-WHERE MemberID = 1;
+WHERE member_id = 1;
 
--- Get all books with available copies
-SELECT * FROM Books
-WHERE CopiesAvailable > 0;
-
--- Get all members who borrowed books
-SELECT M.FirstName, M.LastName, B.Title, T.IssueDate
-FROM Members M
-JOIN Transactions T ON M.MemberID = T.MemberID
-JOIN Books B ON T.BookID = B.BookID
-WHERE T.Status = 'Issued';
-
--- List overdue books (assuming a 14-day borrowing period)
-SELECT M.FirstName, M.LastName, B.Title, T.IssueDate
-FROM Members M
-JOIN Transactions T ON M.MemberID = T.MemberID
-JOIN Books B ON T.BookID = B.BookID
-WHERE T.Status = 'Issued' AND DATEDIFF(CURDATE(), T.IssueDate) > 14;
+-- Delete a book
+DELETE FROM Books
+WHERE book_id = 1;
